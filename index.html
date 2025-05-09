@@ -1,48 +1,10 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChatBot Thông Minh - Người Bạn Thân Thiết</title>
+    <link rel="icon" href="/favicon.ico" sizes="any">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         body {
@@ -254,8 +216,8 @@
                 <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f916.png" alt="Robot">
             </div>
             <div>
-                <h2 class="text-xl font-bold" style="font-family: Arial, sans-serif;">Robot Thông Minh</h2>
-                <p style="font-family: Arial, sans-serif;">Sẵn sàng giúp đỡ bạn!</p>
+                <h2 class="text-xl font-bold" style="font-family: Arial, sans-serif;">Robot Thông Minh - AI Tutor</h2>
+                <p style="font-family: Arial, sans-serif;">Hãy cho tôi biết bạn học lớp mấy? Tôi sẽ giúp bạn học tốt hơn nhé! </p>
             </div>
         </div>
         
@@ -279,6 +241,9 @@
             
             <div>
                 <div class="suggestion-buttons">
+                    <button class="suggestion-button">Tôi tên là Thanh Trúc ( biệt hiệu Jen) học lớp 7</button>
+                    <button class="suggestion-button">Tôi tên là Phương Ngân ( biệt hiệu Jin) học lớp 5</button>
+                    <button class="suggestion-button">Tôi tên là Phương Nhi ( biệt hiệu Jo) 5 tuổi</button>
                     <button class="suggestion-button">Hôm nay thời tiết thế nào?</button>
                     <button class="suggestion-button">Kể cho mình một câu chuyện vui</button>
                     <button class="suggestion-button">Giúp mình học bảng cửu chương</button>
@@ -298,18 +263,12 @@
         </div>
         
         <div class="footer">
-            <p>© 2025 ChatBot Thông Minh - Bố Bình Béo</p>
-            <p>Kết nối thực thế với API Google</p>
+            <p>© 2025 ChatBot Thông Minh - Người bạn thân thiết</p>
+            <p>Made by Bố Bình Béo</p>
         </div>
     </div>
 
     <script>
-        // API Key cho Gemini API
-        const GEMINI_API_KEY = "AIzaSyAAQQI-5F6bXNOExuIlxlJ2AEdOOcDSDAA"; // API Key mới
-
-        // Hệ thống hướng dẫn cho AI
-        const systemPrompt = "Bạn là một AI hướng dẫn, được thiết kế để giúp trẻ em học tập và giải quyết vấn đề bằng cách cung cấp gợi ý hoặc hướng dẫn từng bước. Không cung cấp đáp án cuối cùng. Thay vào đó, hãy đưa ra các bước, câu hỏi gợi mở hoặc mẹo để trẻ tự tìm ra câu trả lời. Sử dụng ngôn ngữ đơn giản, thân thiện, vui vẻ và khuyến khích. Trả lời bằng tiếng Việt.";
-
         // Xử lý sự kiện click các nút gợi ý
         document.querySelectorAll('.suggestion-button').forEach(button => {
             button.addEventListener('click', function() {
@@ -355,34 +314,16 @@
             // Cuộn xuống để hiển thị tin nhắn mới nhất
             userMessage.scrollIntoView({ behavior: 'smooth' });
 
-            // Gửi yêu cầu tới Gemini API
+            // Gửi yêu cầu tới backend
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                const response = await fetch('/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        "contents": [
-                            {
-                                "role": "user",
-                                "parts": [
-                                    { "text": systemPrompt },
-                                    { "text": "Câu hỏi: " + message }
-                                ]
-                            }
-                        ],
-                        "generationConfig": {
-                            "temperature": 0.7,
-                            "topK": 40,
-                            "topP": 0.95,
-                            "maxOutputTokens": 1024,
-                            "responseMimeType": "text/plain"
-                        }
-                    })
+                    body: JSON.stringify({ message })
                 });
 
-                // Kiểm tra nếu yêu cầu không thành công
                 if (!response.ok) {
                     const errorText = await response.text();
                     throw new Error(`Lỗi HTTP: ${response.status} - ${response.statusText}. Chi tiết: ${errorText}`);
@@ -390,59 +331,58 @@
 
                 const data = await response.json();
 
-                // Kiểm tra chi tiết phản hồi từ API
-                if (data && data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
-                    let reply = data.candidates[0].content.parts[0].text;
-
-                    // Tách phản hồi thành các dòng riêng biệt
-                    const lines = reply.split('\n').filter(line => line.trim() !== '');
-
-                    // Tạo HTML cho phản hồi của bot với định dạng dễ nhìn
-                    let formattedReply = '';
-                    let inList = false;
-
-                    lines.forEach((line, index) => {
-                        // Kiểm tra nếu dòng bắt đầu bằng số thứ tự (như "1.", "2.") hoặc ký tự gạch đầu dòng
-                        if (line.match(/^\d+\./) || line.match(/^[-*]\s/)) {
-                            if (!inList) {
-                                formattedReply += '<ul>';
-                                inList = true;
-                            }
-                            const listItem = line.replace(/^\d+\.\s|^[-*]\s/, '');
-                            formattedReply += `<li>${listItem}</li>`;
-                        } else {
-                            if (inList) {
-                                formattedReply += '</ul>';
-                                inList = false;
-                            }
-                            // Thêm biểu tượng cảm xúc và định dạng dòng
-                            formattedReply += `<p style="font-family: Arial, sans-serif; margin-bottom: 10px;">🌟 ${line}</p>`;
-                        }
-                    });
-
-                    if (inList) {
-                        formattedReply += '</ul>';
-                    }
-
-                    // Tạo phản hồi của chatbot
-                    const botMessage = document.createElement('div');
-                    botMessage.classList.add('message', 'bot-message');
-                    botMessage.innerHTML = formattedReply;
-                    
-                    // Thêm phản hồi vào khu vực chat
-                    document.querySelector('.messages').appendChild(botMessage);
-                    
-                    // Cuộn xuống để hiển thị tin nhắn mới nhất
-                    botMessage.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                    throw new Error('Phản hồi từ API không chứa nội dung hợp lệ. Chi tiết: ' + JSON.stringify(data));
+                if (data.error) {
+                    throw new Error(data.error);
                 }
+
+                const reply = data.reply;
+
+                // Tách phản hồi thành các dòng riêng biệt
+                const lines = reply.split('\n').filter(line => line.trim() !== '');
+
+                // Tạo HTML cho phản hồi của bot với định dạng dễ nhìn
+                let formattedReply = '';
+                let inList = false;
+
+                lines.forEach((line, index) => {
+                    // Kiểm tra nếu dòng bắt đầu bằng số thứ tự (như "1.", "2.") hoặc ký tự gạch đầu dòng
+                    if (line.match(/^\d+\./) || line.match(/^[-*]\s/)) {
+                        if (!inList) {
+                            formattedReply += '<ul>';
+                            inList = true;
+                        }
+                        const listItem = line.replace(/^\d+\.\s|^[-*]\s/, '');
+                        formattedReply += `<li>${listItem}</li>`;
+                    } else {
+                        if (inList) {
+                            formattedReply += '</ul>';
+                            inList = false;
+                        }
+                        // Thêm biểu tượng cảm xúc và định dạng dòng
+                        formattedReply += `<p style="font-family: Arial, sans-serif; margin-bottom: 10px;">🌟 ${line}</p>`;
+                    }
+                });
+
+                if (inList) {
+                    formattedReply += '</ul>';
+                }
+
+                // Tạo phản hồi của chatbot
+                const botMessage = document.createElement('div');
+                botMessage.classList.add('message', 'bot-message');
+                botMessage.innerHTML = formattedReply;
+                
+                // Thêm phản hồi vào khu vực chat
+                document.querySelector('.messages').appendChild(botMessage);
+                
+                // Cuộn xuống để hiển thị tin nhắn mới nhất
+                botMessage.scrollIntoView({ behavior: 'smooth' });
             } catch (error) {
                 // Hiển thị thông báo lỗi chi tiết
                 const errorMessage = document.createElement('div');
                 errorMessage.classList.add('message');
                 errorMessage.style.backgroundColor = '#ffcccc';
-                errorMessage.innerHTML = `<p style="font-family: Arial, sans-serif;">Lỗi: ${error.message}. Vui lòng kiểm tra API Key, kết nối internet, quota API, hoặc vị trí người dùng.</p>`;
+                errorMessage.innerHTML = `<p style="font-family: Arial, sans-serif;">Lỗi: ${error.message}. Vui lòng kiểm tra kết nối backend hoặc vị trí người dùng.</p>`;
                 document.querySelector('.messages').appendChild(errorMessage);
                 errorMessage.scrollIntoView({ behavior: 'smooth' });
 
@@ -452,4 +392,4 @@
         }
     </script>
 </body>
-</html>  
+</html>    
