@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const fetch = require('node-fetch');
 const app = express();
@@ -6,8 +7,8 @@ const port = 3000;
 app.use(express.json());
 app.use(express.static('.')); // Phục vụ các tệp tĩnh như index.html
 
-// API Key cho Gemini API (nhúng trong backend, không để lộ trong JavaScript)
-const GEMINI_API_KEY = "AIzaSyAAQQI-5F6bXNOExuIlxlJ2AEdOOcDSDAA";
+// Lấy API Key từ biến môi trường
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // Hệ thống hướng dẫn cho AI
 const systemPrompt = "Bạn là một AI hướng dẫn, được thiết kế để giúp trẻ em học tập và giải quyết vấn đề bằng cách cung cấp gợi ý hoặc hướng dẫn từng bước. Không cung cấp đáp án cuối cùng. Thay vào đó, hãy đưa ra các bước, câu hỏi gợi mở hoặc mẹo để trẻ tự tìm ra câu trả lời. Sử dụng ngôn ngữ đơn giản, thân thiện, vui vẻ và khuyến khích. Trả lời bằng tiếng Việt.";
@@ -18,6 +19,10 @@ app.post('/chat', async (req, res) => {
 
     if (!message) {
         return res.status(400).json({ error: 'Vui lòng gửi câu hỏi!' });
+    }
+
+    if (!GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'API Key không được cấu hình!' });
     }
 
     try {
