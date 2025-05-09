@@ -19,6 +19,10 @@ SYSTEM_PROMPT = "Bạn là một AI hướng dẫn, được thiết kế để 
 
 class ChatHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
+        # Chuyển hướng yêu cầu "/" đến "/index.html"
+        if self.path == '/':
+            self.path = '/index.html'
+
         # Xử lý yêu cầu GET cho favicon.ico
         if self.path == '/favicon.ico':
             try:
@@ -31,6 +35,7 @@ class ChatHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(404)
                 self.end_headers()
             return
+
         # Xử lý các yêu cầu GET khác (như index.html)
         super().do_GET()
 
