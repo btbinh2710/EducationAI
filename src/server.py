@@ -18,6 +18,22 @@ GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 SYSTEM_PROMPT = "Bạn là một AI hướng dẫn, được thiết kế để giúp trẻ em học tập và giải quyết vấn đề bằng cách cung cấp gợi ý hoặc hướng dẫn từng bước. Không cung cấp đáp án cuối cùng. Thay vào đó, hãy đưa ra các bước, câu hỏi gợi mở hoặc mẹo để trẻ tự tìm ra câu trả lời. Sử dụng ngôn ngữ đơn giản, thân thiện, vui vẻ và khuyến khích. Trả lời bằng tiếng Việt."
 
 class ChatHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        # Xử lý yêu cầu GET cho favicon.ico
+        if self.path == '/favicon.ico':
+            try:
+                with open('favicon.ico', 'rb') as f:
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'image/x-icon')
+                    self.end_headers()
+                    self.wfile.write(f.read())
+            except FileNotFoundError:
+                self.send_response(404)
+                self.end_headers()
+            return
+        # Xử lý các yêu cầu GET khác (như index.html)
+        super().do_GET()
+
     def do_POST(self):
         if self.path == '/chat':
             # Đọc dữ liệu từ yêu cầu
