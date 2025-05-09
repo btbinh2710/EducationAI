@@ -1,0 +1,430 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatBot Thông Minh - Người Bạn Thân Thiết</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e6f2ff;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        .dot {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background-color: #ffd700;
+            border-radius: 50%;
+        }
+        
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .chat-header {
+            background-color: #42a5f5;
+            color: white;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .robot-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+        }
+        
+        .robot-avatar img {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .chat-body {
+            background-color: white;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .messages {
+            margin-bottom: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .message {
+            background-color: #f1f3f4;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            max-width: 80%;
+            line-height: 1.6;
+        }
+        
+        .message.bot-message {
+            background-color: #e0f7fa;
+            border: 1px solid #b3e5fc;
+        }
+        
+        .message.user-message {
+            background-color: #e3f2fd;
+            border: 1px solid #90caf9;
+            margin-left: auto;
+        }
+        
+        .message p {
+            margin-bottom: 12px;
+        }
+        
+        .message ul {
+            list-style: none;
+            margin-left: 0;
+            margin-top: 10px;
+        }
+        
+        .message li {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .message li::before {
+            content: "✨"; /* Biểu tượng cảm xúc trước mỗi ý */
+            margin-right: 8px;
+        }
+        
+        .message .highlight {
+            font-weight: bold;
+            color: #0288d1;
+            margin-bottom: 8px;
+        }
+        
+        .suggestion-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .suggestion-button {
+            background-color: #ffeaa7;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-family: Arial, sans-serif;
+        }
+        
+        .suggestion-button:hover {
+            background-color: #fdcb6e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .input-field {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+            font-family: Arial, sans-serif;
+        }
+        
+        .input-field:focus {
+            border-color: #42a5f5;
+        }
+        
+        .send-button {
+            width: 50px;
+            height: 50px;
+            background-color: #42a5f5;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .send-button:hover {
+            background-color: #2196f3;
+            transform: scale(1.05);
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <!-- Tạo hiệu ứng chấm nhấp nháy ngẫu nhiên trên nền -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            for (let i = 0; i < 50; i++) {
+                const dot = document.createElement('div');
+                dot.classList.add('dot');
+                dot.style.left = Math.random() * 100 + 'vw';
+                dot.style.top = Math.random() * 100 + 'vh';
+                dot.style.opacity = Math.random() * 0.5 + 0.3;
+                document.body.appendChild(dot);
+            }
+        });
+    </script>
+
+    <div class="chat-container">
+        <h1 class="text-4xl text-center font-bold text-blue-400 my-8" style="font-family: Arial, sans-serif;">Chatbot Thông Minh</h1>
+        
+        <div class="chat-header">
+            <div class="robot-avatar">
+                <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f916.png" alt="Robot">
+            </div>
+            <div>
+                <h2 class="text-xl font-bold" style="font-family: Arial, sans-serif;">Robot Thông Minh</h2>
+                <p style="font-family: Arial, sans-serif;">Sẵn sàng giúp đỡ bạn!</p>
+            </div>
+        </div>
+        
+        <div class="chat-body">
+            <div class="messages">
+                <div class="message bot-message">
+                    <p style="font-family: Arial, sans-serif;">Xin chào bạn! Mình là Robot Thông Minh đây! 😊</p>
+                    <p style="font-family: Arial, sans-serif;">Mình có thể giúp bạn:</p>
+                    <ul>
+                        <li>Trả lời câu hỏi.</li>
+                        <li>Kể chuyện vui.</li>
+                        <li>Cùng học bài nhé!</li>
+                    </ul>
+                </div>
+                
+                <div class="message bot-message">
+                    <p style="font-family: Arial, sans-serif;">Bạn muốn hỏi mình điều gì nào? 🤔</p>
+                    <p style="font-family: Arial, sans-serif;">Hoặc bạn có thể chọn một câu hỏi dưới đây nhé!</p>
+                </div>
+            </div>
+            
+            <div>
+                <div class="suggestion-buttons">
+                    <button class="suggestion-button">Hôm nay thời tiết thế nào?</button>
+                    <button class="suggestion-button">Kể cho mình một câu chuyện vui</button>
+                    <button class="suggestion-button">Giúp mình học bảng cửu chương</button>
+                    <button class="suggestion-button">Làm thế nào để bảo vệ môi trường?</button>
+                </div>
+                
+                <div class="input-container">
+                    <input type="text" class="input-field" placeholder="Gõ câu hỏi của bạn ở đây...">
+                    <button class="send-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="Mos 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2023 ChatBot Thông Minh - Người bạn thân thiết</p>
+            <p>Mô phỏng Google API - Không kết nối với API thực</p>
+        </div>
+    </div>
+
+    <script>
+        // Xử lý sự kiện click các nút gợi ý
+        document.querySelectorAll('.suggestion-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const question = this.textContent;
+                document.querySelector('.input-field').value = question;
+                sendMessage();
+            });
+        });
+
+        // Xử lý sự kiện gửi tin nhắn
+        document.querySelector('.send-button').addEventListener('click', sendMessage);
+        document.querySelector('.input-field').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const inputField = document.querySelector('.input-field');
+            const message = inputField.value.trim();
+            
+            if (!message) {
+                const errorMessage = document.createElement('div');
+                errorMessage.classList.add('message');
+                errorMessage.style.backgroundColor = '#ffcccc';
+                errorMessage.innerHTML = `<p style="font-family: Arial, sans-serif;">Vui lòng nhập câu hỏi trước khi gửi! 😊</p>`;
+                document.querySelector('.messages').appendChild(errorMessage);
+                errorMessage.scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+
+            // Tạo tin nhắn người dùng
+            const userMessage = document.createElement('div');
+            userMessage.classList.add('message', 'user-message');
+            userMessage.innerHTML = `<p style="font-family: Arial, sans-serif;">${message}</p>`;
+            
+            // Thêm tin nhắn vào khu vực chat
+            document.querySelector('.messages').appendChild(userMessage);
+            
+            // Xóa nội dung input
+            inputField.value = '';
+            
+            // Cuộn xuống để hiển thị tin nhắn mới nhất
+            userMessage.scrollIntoView({ behavior: 'smooth' });
+
+            // Gửi yêu cầu tới backend
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Lỗi HTTP: ${response.status} - ${response.statusText}. Chi tiết: ${errorText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                const reply = data.reply;
+
+                // Tách phản hồi thành các dòng riêng biệt
+                const lines = reply.split('\n').filter(line => line.trim() !== '');
+
+                // Tạo HTML cho phản hồi của bot với định dạng dễ nhìn
+                let formattedReply = '';
+                let inList = false;
+
+                lines.forEach((line, index) => {
+                    // Kiểm tra nếu dòng bắt đầu bằng số thứ tự (như "1.", "2.") hoặc ký tự gạch đầu dòng
+                    if (line.match(/^\d+\./) || line.match(/^[-*]\s/)) {
+                        if (!inList) {
+                            formattedReply += '<ul>';
+                            inList = true;
+                        }
+                        const listItem = line.replace(/^\d+\.\s|^[-*]\s/, '');
+                        formattedReply += `<li>${listItem}</li>`;
+                    } else {
+                        if (inList) {
+                            formattedReply += '</ul>';
+                            inList = false;
+                        }
+                        // Thêm biểu tượng cảm xúc và định dạng dòng
+                        formattedReply += `<p style="font-family: Arial, sans-serif; margin-bottom: 10px;">🌟 ${line}</p>`;
+                    }
+                });
+
+                if (inList) {
+                    formattedReply += '</ul>';
+                }
+
+                // Tạo phản hồi của chatbot
+                const botMessage = document.createElement('div');
+                botMessage.classList.add('message', 'bot-message');
+                botMessage.innerHTML = formattedReply;
+                
+                // Thêm phản hồi vào khu vực chat
+                document.querySelector('.messages').appendChild(botMessage);
+                
+                // Cuộn xuống để hiển thị tin nhắn mới nhất
+                botMessage.scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                // Hiển thị thông báo lỗi chi tiết
+                const errorMessage = document.createElement('div');
+                errorMessage.classList.add('message');
+                errorMessage.style.backgroundColor = '#ffcccc';
+                errorMessage.innerHTML = `<p style="font-family: Arial, sans-serif;">Lỗi: ${error.message}. Vui lòng kiểm tra kết nối backend hoặc vị trí người dùng.</p>`;
+                document.querySelector('.messages').appendChild(errorMessage);
+                errorMessage.scrollIntoView({ behavior: 'smooth' });
+
+                // Ghi log lỗi vào console để kiểm tra thêm
+                console.error('Chi tiết lỗi:', error);
+            }
+        }
+    </script>
+</body>
+</html>
