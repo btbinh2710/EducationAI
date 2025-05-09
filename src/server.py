@@ -113,4 +113,4 @@ class ChatHandler(http.server.SimpleHTTPRequestHandler):
 Handler = ChatHandler
 with socketserver.TCPServer(("", PORT), Handler) as httpd:
     print(f"Server chạy trên http://localhost:{PORT}")
-    httpd.serve_forever()
+    httpd.serve_forever() 
